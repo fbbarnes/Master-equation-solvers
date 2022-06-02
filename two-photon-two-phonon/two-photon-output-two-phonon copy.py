@@ -1,7 +1,6 @@
 import numpy as np
 import scipy as sc
 import matplotlib.pyplot as plt
-import qutip as qt
 from matplotlib import rc
 import matplotlib as mpl
 import uuid

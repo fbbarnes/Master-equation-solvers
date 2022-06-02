@@ -1,7 +1,6 @@
 import numpy as np
 import scipy as sc
 import matplotlib.pyplot as plt
-import qutip as qt
 from matplotlib import rc
 import matplotlib as mpl
 import uuid
@@ -315,82 +314,3 @@ Pee_11 = r_total_t_11[21] + r_total_t_11[28] + r_total_t_11[35]
 
 
 np.save("flux_11_eta_5_h_1.npy", flux_11)
-'''
-
-flux_11_eta_1_h_0 = np.load('flux_11_eta_1_h_0.npy')
-flux_11_eta_1_h_02 = np.load('flux_11_eta_1_h_02.npy')
-flux_11_eta_1_h_05 = np.load('flux_11_eta_1_h_05.npy')
-flux_11_eta_1_h_1 = np.load('flux_11_eta_1_h_1.npy')
-flux_11_eta_1_h_15 = np.load('flux_11_eta_1_h_15.npy')
-flux_11_eta_1_h_2 = np.load('flux_11_eta_1_h_2.npy')
-flux_11_eta_1_h_100 = np.load('flux_11_eta_1_h_100.npy')
-
-
-
-
-
-#Plotting
-my_dpi = 300
-fig, ax = plt.subplots(nrows=1, ncols=1, sharex='col', figsize=(1000/my_dpi, 1000/my_dpi), dpi=my_dpi)
-#Info
-info_string = f"Gamma={Gamma}, Omega={Omega}, t0={t0}, r_sys={r_sys}, r_field_super={r_field_super} "
-#Main plot
-ax.set_xlabel(r'Time ($ t/\Gamma$)')
-
-two_color='red'
-one_color='blue'
-super_color='purple'
-l_width =1
-ax.plot(trange[:-1], flux_11_eta_1_h_0, linewidth=l_width,   label=r'$\omega_p=0$')
-ax.plot(trange[:-1], flux_11_eta_1_h_02, linewidth=l_width,   label=r'$\omega_p=0.2$')
-ax.plot(trange[:-1], flux_11_eta_1_h_05, linewidth=l_width,   label=r'$\omega_p=0.5$')
-ax.plot(trange[:-1], flux_11_eta_1_h_1, linewidth=l_width,   label=r'$\omega_p=1$')
-ax.plot(trange[:-1], flux_11_eta_1_h_15, linewidth=l_width,   label=r'$\omega_p=1.5$')
-ax.plot(trange[:-1], flux_11_eta_1_h_2, linewidth=l_width,   label=r'$\omega_p=2$')
-ax.plot(trange[:-1], flux_11_eta_1_h_100, linewidth=l_width,   label=r'$\omega_p=100$')
-
-
-
-
-#ax[0].plot(trange[:-1], flux_00, label=r'N=0 flux')
-
-ax.plot(trange, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="solid", zorder=0, color="black", label=r'$|\xi(t)|^2$')
-ax.fill_between(trange, 0, pulse_func(trange)**2, color="black", alpha=0.1)
-
-
-ax.set_xlim(left=0, right=tmax)
-ax.set_ylim([0,0.6])
-
-
-from matplotlib.ticker import MaxNLocator
-
-#ax.yaxis.set_major_locator(MaxNLocator(integer=True))
-
-#yticks[1].label1.set_visible(False)
-#ax[0].legend(prop={'size': 8})
-
-#for i in range (0,3):
-  #box = ax[i].get_position()
-  #ax[i].set_position([box.x0, box.y0 + box.height - 0.1,
-                 #box.width, box.height * 0.9])
-  #ax[i].set_position([box.x0 - box.width * 0.1, box.y0,
-  #               box.width *0.9, box.height])
-
-handles, labels = ax.get_legend_handles_labels()
-# Put a legend below current axis
-#fig.legend(handles, labels, loc='upper center',
-          #fancybox=False, shadow=False, ncol=1, prop={'size': 8})
-ax.legend(handles, labels, frameon=False, loc="upper right",  fontsize='x-small') 
-#Info plot
-#ax[1].axis('off')
-#ax[1].annotate(info_string, xy=(0.5, 0), xytext=(0, 10), xycoords=('axes fraction', 'figure fraction'),
-#            textcoords='offset points', ha='center', va='bottom')
-#Output
-file_num = 0
-while os.path.exists("plot%s.png" % file_num):
-    file_num += 1
-plt.tight_layout()
-fig.savefig(str("plot"+str(file_num)))
-plt.show()
-
-print('done')

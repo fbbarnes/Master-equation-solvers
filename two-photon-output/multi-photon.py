@@ -182,42 +182,15 @@ trange = np.linspace(0, tmax, 100)
 initial_conditions = np.hstack((initial_fock_dens, initial_flux_expectations))
 sol = sc.integrate.solve_ivp(prop_state_flux, [0,tmax], initial_conditions, t_eval=trange,max_step=0.05)
 
+
+
 #Final states
 rho_mn_t = sol.y[0:(fock_size**2 * sys_size**2)]
 rho_mn_t = np.reshape(rho_mn_t, (fock_size, fock_size, sys_size**2, np.size(trange)))
-r00_t = sol.y[0:4]
-r01_t = sol.y[4:8]
-r02_t = sol.y[8:12]
-r10_t = sol.y[12:16]
-r11_t = sol.y[16:20]
-r12_t = sol.y[20:24]
-r20_t = sol.y[24:28]
-r21_t = sol.y[28:32]
-r22_t = sol.y[32:36]
-
-r_mn_tx = np.array([r00_t,r01_t,r02_t,r10_t,r11_t,r12_t,r20_t,r21_t,r22_t])
-
-
-
 
 #Final flux expectations
 Lambda_mn_t = sol.y[(fock_size**2 * sys_size**2):]
 Lambda_mn_t = np.reshape(Lambda_mn_t, (fock_size, fock_size, np.size(trange)))
-Lambda00_t = sol.y[36]
-Lambda01_t = sol.y[37]
-Lambda02_t = sol.y[38]
-Lambda10_t = sol.y[39]
-Lambda11_t = sol.y[40]
-Lambda12_t = sol.y[41]
-Lambda20_t = sol.y[42]
-Lambda21_t = sol.y[43]
-Lambda22_t = sol.y[44]
-
-Lambda_mn_tx = np.array([Lambda00_t,Lambda01_t,Lambda02_t,Lambda10_t,Lambda11_t,Lambda12_t,Lambda20_t,Lambda21_t,Lambda22_t])
-
-
-
-
 
 #Total states
 r_total_t_22 = weight(r_field_22, rho_mn_t)
@@ -233,10 +206,7 @@ Lambda_total_t_super = weight(r_field_super, Lambda_mn_t)
 #flux
 flux_22 = np.diff(Lambda_total_t_22)/np.diff(trange)
 flux_11 = np.diff(Lambda_total_t_11)/np.diff(trange)
-flux_00 = np.diff(Lambda00_t)/np.diff(trange)
 flux_super = np.diff(Lambda_total_t_super)/np.diff(trange)
-
-
 
 
 #Probabilities
@@ -268,12 +238,10 @@ ax[0].plot(trange, Pee_super, linewidth=l_width, color=super_color, linestyle="d
 
 ax[2].plot(trange, Lambda_total_t_22, linewidth=l_width, color=two_color, linestyle="dotted", label=r'N=2 integrated flux')
 ax[2].plot(trange, Lambda_total_t_11, linewidth=l_width, color= one_color,  linestyle="dashed", label=r'N=1 integrated flux')
-#ax[0].plot(trange, Lambda00_t, label=r'N=0 integrated flux')
 ax[2].plot(trange, Lambda_total_t_super, color=super_color, linewidth=l_width,linestyle="dashdot", label=r'Superposition integrated flux')
 
 ax[1].plot(trange[:-1], flux_22, linewidth=l_width, color=two_color, linestyle="dotted", label=r'N=2 flux')
 ax[1].plot(trange[:-1], flux_11, linewidth=l_width, color= one_color,  linestyle="dashed", label=r'N=1 flux')
-#ax[0].plot(trange[:-1], flux_00, label=r'N=0 flux')
 ax[1].plot(trange[:-1], flux_super, color=super_color, linewidth=l_width, linestyle="dashdot", label=r'Superposition flux')
 
 ax[0].plot(trange, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="solid", zorder=0, color="black", label=r'$|\xi(t)|^2$')

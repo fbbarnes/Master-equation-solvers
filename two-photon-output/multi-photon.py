@@ -78,15 +78,22 @@ class system_matrix:
 
 def prop_state(t, system_matrix):
   rho = system_matrix
+  rho_prop = np.zeros(rho.shape)
   for m in range(0,rho.shape[0]):
     for n in range(0,rho.shape[1]):
-      rho[m][n] =   Lind @ rho[m][n]
+      rho_prop[m][n] =   Lind @ rho[m][n]
       if m > 0:
-        rho[m][n] +=  np.sqrt(m) * pulse_func(t) * (spost(L.T.conj()) - spre(L.T.conj())) @ rho[m-1][n]
+        rho_prop[m][n] +=  np.sqrt(m) * pulse_func(t) * (spost(L.T.conj()) - spre(L.T.conj())) @ rho[m-1][n]
       if n > 0:
-        rho[m][n] +=  np.sqrt(n) * np.conj(pulse_func(t)) * (spre(L) - spost(L)) @ rho[m][n-1]
+        rho_prop[m][n] +=  np.sqrt(n) * np.conj(pulse_func(t)) * (spre(L) - spost(L)) @ rho[m][n-1]
+      if flag is False:
+        print('m:',m,' n:',n)
+        print('rho[m][n]')
+        print(rho[m][n])
+        print('rho_prop[m][n]')
+        print(rho_prop[m][n])
 
-  return rho
+  return rho_prop
 
 def prop_flux(t, system_matrix):
   rho = system_matrix
@@ -103,11 +110,29 @@ def prop_flux(t, system_matrix):
    
   return flux   
 
-
+flag = False
 def prop_state_flux(t, y):
+  global flag
+  rho = y[0:(fock_size**2 * sys_size**2)]
+  rho = np.reshape(rho, (fock_size, fock_size, sys_size**2))
+  if not flag: print(rho)
+  
 
   rho_prop = prop_state(t, rho)
+  if not flag: 
+    print('rho_prop')
+    print(rho_prop)
   flux_prop = prop_flux(t, rho)
+  if not flag: 
+    print('flux_prop')
+    print(flux_prop)
+
+  rho_prop = np.reshape(rho_prop, -1)
+  flux_prop = np.reshape(flux_prop, -1)
+
+  y = np.hstack((rho_prop, flux_prop))
+  flag = True
+  return y
 
 
 
@@ -211,6 +236,7 @@ t0 = 3
 pulse_func = lambda x: gaus(x, Omega, t0)
 
 #Field state(s)
+fock_size = 3
 #two photon
 r_field_22 = np.array([[0,0,0],
                     [0,0,0],
@@ -237,6 +263,7 @@ L = np.sqrt(Gamma) * sig
 S = np.eye(2)
 
 #Initial emitter state
+sys_size = 2
 r_sys = 1 * np.outer(psi_g, psi_g).reshape(-1) +  0 * np.outer(psi_e, psi_e).reshape(-1) +  0 * np.outer(psi_e, psi_g).reshape(-1) +  0 * np.outer(psi_g, psi_e).reshape(-1)
 r00_t0 = r_sys
 r11_t0 = r_sys 
@@ -247,8 +274,7 @@ r20_t0 = np.zeros(4)
 r02_t0 = np.zeros(4)
 r21_t0 = np.zeros(4)
 r12_t0 = np.zeros(4)
-initial_fock_dens = np.hstack((r00_t0, r10_t0, r01_t0, r11_t0, r20_t0, r02_t0, r21_t0, r12_t0, r22_t0))
-
+initial_fock_dens = np.hstack((r00_t0, r01_t0, r02_t0, r10_t0, r11_t0, r12_t0, r20_t0, r21_t0, r22_t0))
 
 #Time settings
 tmax = 8
@@ -256,30 +282,30 @@ trange = np.linspace(0, tmax, 100)
 
 #Solver
 initial_conditions = np.hstack((initial_fock_dens, initial_flux_expectations))
-sol = sc.integrate.solve_ivp(prop_fock_state, [0,tmax], initial_conditions, t_eval=trange,max_step=0.05)
+sol = sc.integrate.solve_ivp(prop_state_flux, [0,tmax], initial_conditions, t_eval=trange,max_step=0.05)
 
 #Final states
 r00_t = sol.y[0:4]
-r10_t = sol.y[4:8]
-r01_t = sol.y[8:12]
-r11_t = sol.y[12:16]
-r20_t = sol.y[16:20]
-r02_t = sol.y[20:24]
-r21_t = sol.y[24:28]
-r12_t = sol.y[28:32]
+r01_t = sol.y[4:8]
+r02_t = sol.y[8:12]
+r10_t = sol.y[12:16]
+r11_t = sol.y[16:20]
+r12_t = sol.y[20:24]
+r20_t = sol.y[24:28]
+r21_t = sol.y[28:32]
 r22_t = sol.y[32:36]
 
 r_mn_t = np.array([r00_t,r01_t,r02_t,r10_t,r11_t,r12_t,r20_t,r21_t,r22_t])
 
 #Final flux expectations
 Lambda00_t = sol.y[36]
-Lambda10_t = sol.y[37]
-Lambda01_t = sol.y[38]
-Lambda11_t = sol.y[39]
-Lambda20_t = sol.y[40]
-Lambda02_t = sol.y[41]
-Lambda21_t = sol.y[42]
-Lambda12_t = sol.y[43]
+Lambda01_t = sol.y[37]
+Lambda02_t = sol.y[38]
+Lambda10_t = sol.y[39]
+Lambda11_t = sol.y[40]
+Lambda12_t = sol.y[41]
+Lambda20_t = sol.y[42]
+Lambda21_t = sol.y[43]
 Lambda22_t = sol.y[44]
 
 Lambda_mn_t = np.array([Lambda00_t,Lambda01_t,Lambda02_t,Lambda10_t,Lambda11_t,Lambda12_t,Lambda20_t,Lambda21_t,Lambda22_t])

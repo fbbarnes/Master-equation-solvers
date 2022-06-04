@@ -86,12 +86,6 @@ def prop_state(t, system_matrix):
         rho_prop[m][n] +=  np.sqrt(m) * pulse_func(t) * (spost(L.T.conj()) - spre(L.T.conj())) @ rho[m-1][n]
       if n > 0:
         rho_prop[m][n] +=  np.sqrt(n) * np.conj(pulse_func(t)) * (spre(L) - spost(L)) @ rho[m][n-1]
-      if flag is False:
-        print('m:',m,' n:',n)
-        print('rho[m][n]')
-        print(rho[m][n])
-        print('rho_prop[m][n]')
-        print(rho_prop[m][n])
 
   return rho_prop
 
@@ -110,22 +104,12 @@ def prop_flux(t, system_matrix):
    
   return flux   
 
-flag = False
 def prop_state_flux(t, y):
-  global flag
   rho = y[0:(fock_size**2 * sys_size**2)]
   rho = np.reshape(rho, (fock_size, fock_size, sys_size**2))
-  if not flag: print(rho)
   
-
   rho_prop = prop_state(t, rho)
-  if not flag: 
-    print('rho_prop')
-    print(rho_prop)
   flux_prop = prop_flux(t, rho)
-  if not flag: 
-    print('flux_prop')
-    print(flux_prop)
 
   rho_prop = np.reshape(rho_prop, -1)
   flux_prop = np.reshape(flux_prop, -1)
@@ -134,101 +118,15 @@ def prop_state_flux(t, y):
   flag = True
   return y
 
+def weight(r_field, r_mn_t):
+  rho_mn_weighted_t = np.zeros(r_mn_t.shape)
+  for m in range(0,r_field.shape[0]):
+    for n in range(0,r_field.shape[1]): 
+      rho_mn_weighted_t[m][n] = r_field[m][n] * r_mn_t[m][n]
+  
+  r_total_t = np.sum(rho_mn_weighted_t, axis=(0,1))
+  return r_total_t 
 
-
-    
-
-
-def prop_fock_state(t, y):
-
-    """
-    augmented_dens is a vector containing all the density matrices
-    of interest.
-    """
-    # rho = np.array_splitaugmented_dens.reshape() 
-    #system density matrices
-    r00_t = y[0:4]
-    r10_t = y[4:8]
-    r01_t = y[8:12]
-    r11_t = y[12:16]
-    r20_t = y[16:20]
-    r02_t = y[20:24]
-    r21_t = y[24:28]
-    r12_t = y[28:32]
-    r22_t = y[32:36]
-
-
-    
-    #master equations
-    r00_t_prop = Lind @ r00_t
-    
-    r10_t_prop =  Lind @ r10_t 
-    r10_t_prop += pulse_func(t) * (spost(L.T.conj()) - spre(L.T.conj())) @ r00_t
-
-    r01_t_prop =  Lind @ r01_t 
-    r01_t_prop += np.conj(pulse_func(t)) * (spre(L) - spost(L)) @ r00_t
-
-    r11_t_prop =  Lind @ r11_t 
-    r11_t_prop += pulse_func(t) * (spost(L.T.conj()) - spre(L.T.conj())) @ r01_t
-    r11_t_prop += np.conj(pulse_func(t)) * (spre(L) - spost(L)) @ r10_t
-
-    r20_t_prop =  Lind @ r20_t 
-    r20_t_prop += np.sqrt(2) * pulse_func(t) * (spost(L.T.conj()) - spre(L.T.conj())) @ r10_t
-
-    r02_t_prop =  Lind @ r02_t 
-    r02_t_prop += np.sqrt(2) * np.conj(pulse_func(t)) * (spre(L) - spost(L)) @ r01_t
-
-    r21_t_prop =  Lind @ r21_t 
-    r21_t_prop += np.sqrt(2) * pulse_func(t) * (spost(L.T.conj()) - spre(L.T.conj())) @ r11_t 
-    r21_t_prop += np.conj(pulse_func(t)) * (spre(L) - spost(L)) @ r20_t
-
-    r12_t_prop =  Lind @ r12_t 
-    r12_t_prop += pulse_func(t) * (spost(L.T.conj()) - spre(L.T.conj())) @ r02_t 
-    r12_t_prop += np.sqrt(2) * np.conj(pulse_func(t)) * (spre(L) - spost(L)) @ r11_t
-
-    r22_t_prop =  Lind @ r22_t 
-    r22_t_prop += np.sqrt(2) * pulse_func(t) * (spost(L.T.conj()) - spre(L.T.conj())) @ r12_t
-    r22_t_prop += np.sqrt(2) * np.conj(pulse_func(t)) * (spre(L) - spost(L)) @ r21_t
-
-    #output photon flux expectation equations of motion
-    Lambda00_t_prop =  vec_trace(spost(L.T.conj() @ L) @ dagger(r00_t))
-
-    Lambda10_t_prop =  vec_trace(spost(L.T.conj() @ L) @ dagger(r10_t))
-    Lambda10_t_prop += np.conj(pulse_func(t)) * vec_trace(spost(L) @ dagger(r00_t))
-
-    Lambda01_t_prop =  vec_trace(spost(L.T.conj() @ L) @ dagger(r01_t))
-    Lambda01_t_prop += pulse_func(t) * vec_trace(spost(L.T.conj()) @ dagger(r00_t))
-
-    Lambda11_t_prop =  vec_trace(spost(L.T.conj() @ L) @ dagger(r11_t))
-    Lambda11_t_prop += np.conj(pulse_func(t)) * vec_trace(spost(L) @ dagger(r01_t))
-    Lambda11_t_prop += pulse_func(t) * vec_trace(spost(L.T.conj()) @ dagger(r10_t))
-    Lambda11_t_prop += np.abs(pulse_func(t))**2 * vec_trace(dagger(r00_t))
-
-    Lambda20_t_prop =  vec_trace(spost(L.T.conj() @ L) @ dagger(r20_t))
-    Lambda20_t_prop += np.sqrt(2) * np.conj(pulse_func(t)) * vec_trace(spost(L) @ dagger(r10_t))
-
-    Lambda02_t_prop =  vec_trace(spost(L.T.conj() @ L) @ dagger(r02_t))
-    Lambda02_t_prop += np.sqrt(2) * pulse_func(t) * vec_trace(spost(L.T.conj()) @ dagger(r01_t))
-
-    Lambda21_t_prop =  vec_trace(spost(L.T.conj() @ L) @ dagger(r21_t))
-    Lambda21_t_prop += np.sqrt(2) * np.conj(pulse_func(t)) * vec_trace(spost(L) @ dagger(r11_t))
-    Lambda21_t_prop += pulse_func(t) * vec_trace(spost(L.T.conj()) @ dagger(r20_t))
-    Lambda21_t_prop += np.sqrt(2) * np.abs(pulse_func(t))**2 * vec_trace(dagger(r10_t))
-
-    Lambda12_t_prop =  vec_trace(spost(L.T.conj() @ L) @ dagger(r12_t))
-    Lambda12_t_prop += np.conj(pulse_func(t)) * vec_trace(spost(L) @ dagger(r02_t))
-    Lambda12_t_prop += np.sqrt(2) * pulse_func(t) * vec_trace(spost(L.T.conj()) @ dagger(r11_t))
-    Lambda12_t_prop += np.sqrt(2) * np.abs(pulse_func(t))**2 * vec_trace(dagger(r01_t))
-
-    Lambda22_t_prop =  vec_trace(spost(L.T.conj() @ L) @ dagger(r22_t))
-    Lambda22_t_prop += np.sqrt(2) * np.conj(pulse_func(t)) * vec_trace(spost(L) @ dagger(r12_t))
-    Lambda22_t_prop += np.sqrt(2) * pulse_func(t) * vec_trace(spost(L.T.conj()) @ dagger(r21_t))
-    Lambda22_t_prop += 2 * np.abs(pulse_func(t))**2 * vec_trace(dagger(r11_t))
-
-    y = np.hstack((r00_t_prop, r10_t_prop, r01_t_prop, r11_t_prop, r20_t_prop, r02_t_prop, r21_t_prop, r12_t_prop, r22_t_prop, 
-                  Lambda00_t_prop, Lambda10_t_prop, Lambda01_t_prop, Lambda11_t_prop, Lambda20_t_prop, Lambda02_t_prop, Lambda21_t_prop, Lambda12_t_prop, Lambda22_t_prop))
-
-    return y
 
 #Wavepacket
 Omega = 1.46
@@ -241,12 +139,12 @@ fock_size = 3
 r_field_22 = np.array([[0,0,0],
                     [0,0,0],
                     [0,0,1]])
-r_field_22 = r_field_22.ravel()
+#r_field_22 = r_field_22.ravel()
 #single photon
 r_field_11 = np.array([[0,0,0],
                     [0,1,0],
                     [0,0,0]])
-r_field_11 = r_field_11.ravel()
+#r_field_11 = r_field_11.ravel()
 #superposition of one and two
 r_field_super = 0.5 * r_field_11 + 0.5 * r_field_22
 initial_flux_expectations = np.zeros(r_field_11.size)
@@ -285,6 +183,8 @@ initial_conditions = np.hstack((initial_fock_dens, initial_flux_expectations))
 sol = sc.integrate.solve_ivp(prop_state_flux, [0,tmax], initial_conditions, t_eval=trange,max_step=0.05)
 
 #Final states
+rho_mn_t = sol.y[0:(fock_size**2 * sys_size**2)]
+rho_mn_t = np.reshape(rho_mn_t, (fock_size, fock_size, sys_size**2, np.size(trange)))
 r00_t = sol.y[0:4]
 r01_t = sol.y[4:8]
 r02_t = sol.y[8:12]
@@ -295,9 +195,14 @@ r20_t = sol.y[24:28]
 r21_t = sol.y[28:32]
 r22_t = sol.y[32:36]
 
-r_mn_t = np.array([r00_t,r01_t,r02_t,r10_t,r11_t,r12_t,r20_t,r21_t,r22_t])
+r_mn_tx = np.array([r00_t,r01_t,r02_t,r10_t,r11_t,r12_t,r20_t,r21_t,r22_t])
+
+
+
 
 #Final flux expectations
+Lambda_mn_t = sol.y[(fock_size**2 * sys_size**2):]
+Lambda_mn_t = np.reshape(Lambda_mn_t, (fock_size, fock_size, np.size(trange)))
 Lambda00_t = sol.y[36]
 Lambda01_t = sol.y[37]
 Lambda02_t = sol.y[38]
@@ -308,38 +213,22 @@ Lambda20_t = sol.y[42]
 Lambda21_t = sol.y[43]
 Lambda22_t = sol.y[44]
 
-Lambda_mn_t = np.array([Lambda00_t,Lambda01_t,Lambda02_t,Lambda10_t,Lambda11_t,Lambda12_t,Lambda20_t,Lambda21_t,Lambda22_t])
+Lambda_mn_tx = np.array([Lambda00_t,Lambda01_t,Lambda02_t,Lambda10_t,Lambda11_t,Lambda12_t,Lambda20_t,Lambda21_t,Lambda22_t])
+
+
+
+
 
 #Total states
-r_mn_weighted_t = np.zeros(r_mn_t.shape)
-
-for i in range(0,r_field_22.size) :
-  r_mn_weighted_t[i] = r_field_22[i] * r_mn_t[i]
-r_total_t_22 = np.sum(r_mn_weighted_t, axis=0)
-
-for i in range(0,r_field_11.size) :
-  r_mn_weighted_t[i] = r_field_11[i] * r_mn_t[i]
-r_total_t_11 = np.sum(r_mn_weighted_t, axis=0)
-
-for i in range(0,r_field_super.size) :
-  r_mn_weighted_t[i] = r_field_super[i] * r_mn_t[i]
-r_total_t_super = np.sum(r_mn_weighted_t, axis=0)
+r_total_t_22 = weight(r_field_22, rho_mn_t)
+r_total_t_11 = weight(r_field_11, rho_mn_t)
+r_total_t_super = weight(r_field_super, rho_mn_t)
 
 #Total fluxes
-Lambda_mn_weighted_t = np.zeros(Lambda_mn_t.shape)
-for i in range(0,r_field_22.size) :
-  Lambda_mn_weighted_t[i] = r_field_22[i] * Lambda_mn_t[i]
-Lambda_total_t_22 = np.sum(Lambda_mn_weighted_t, axis=0)
+Lambda_total_t_22 = weight(r_field_22, Lambda_mn_t)
+Lambda_total_t_11 = weight(r_field_11, Lambda_mn_t)
+Lambda_total_t_super = weight(r_field_super, Lambda_mn_t)
 
-
-for i in range(0,r_field_11.size) :
-  Lambda_mn_weighted_t[i] = r_field_11[i] * Lambda_mn_t[i]
-Lambda_total_t_11 = np.sum(Lambda_mn_weighted_t, axis=0)
-
-
-for i in range(0,r_field_super.size) :
-  Lambda_mn_weighted_t[i] = r_field_super[i] * Lambda_mn_t[i]
-Lambda_total_t_super = np.sum(Lambda_mn_weighted_t, axis=0)
 
 #flux
 flux_22 = np.diff(Lambda_total_t_22)/np.diff(trange)

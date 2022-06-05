@@ -1,6 +1,7 @@
 import numpy as np
 import scipy as sc
 from scipy import integrate
+from scipy.stats import poisson
 import matplotlib.pyplot as plt
 from matplotlib import rc
 import matplotlib as mpl
@@ -127,27 +128,51 @@ def weight(r_field, r_mn_t):
   r_total_t = np.sum(rho_mn_weighted_t, axis=(0,1))
   return r_total_t 
 
+def create_coh_field(fock_size, mu):
+  r_field = np.zeros((fock_size, fock_size))
+  for i in range(0, fock_size):
+    print(poisson.pmf(i, mu))
+    r_field[i][i] =  poisson.pmf(i, mu)
+
+  return r_field
+
+def create_system_state(fock_size, sys_size, r_sys):
+  rho_init = np.zeros((fock_size, fock_size, sys_size**2))
+  r_sys = 1 * np.outer(psi_g, psi_g).reshape(-1) +  0 * np.outer(psi_e, psi_e).reshape(-1) +  0 * np.outer(psi_e, psi_g).reshape(-1) +  0 * np.outer(psi_g, psi_e).reshape(-1)
+  for m in range(0, fock_size):
+    for n in range(0, fock_size):
+      if m == n:
+        rho_init[m][n] = r_sys
+      else:
+        rho_init[m][n] = np.zeros(sys_size**2)
+  
+  return rho_init 
+
+
+
 
 #Wavepacket
 Omega = 1.46
-t0 = 3
+t0 = 0
 pulse_func = lambda x: gaus(x, Omega, t0)
 
 #Field state(s)
-fock_size = 3
+fock_size = 10
 #two photon
-r_field_22 = np.array([[0,0,0],
-                    [0,0,0],
-                    [0,0,1]])
-#r_field_22 = r_field_22.ravel()
+r_field_22 = np.zeros((fock_size, fock_size))
+r_field_22[2][2] = 1
 #single photon
-r_field_11 = np.array([[0,0,0],
-                    [0,1,0],
-                    [0,0,0]])
-#r_field_11 = r_field_11.ravel()
+r_field_11 = np.zeros((fock_size, fock_size))
+r_field_11[1][1] = 1
+#four photon
+r_field_44 = np.zeros((fock_size, fock_size))
+r_field_44[4][4] = 1
 #superposition of one and two
 r_field_super = 0.5 * r_field_11 + 0.5 * r_field_22
-initial_flux_expectations = np.zeros(r_field_11.size)
+#coherent state
+r_field_coh = create_coh_field(fock_size=fock_size, mu=4)
+print(r_field_coh)
+initial_flux_expectations = np.zeros(r_field_coh.size)
 
 
 
@@ -163,24 +188,18 @@ S = np.eye(2)
 #Initial emitter state
 sys_size = 2
 r_sys = 1 * np.outer(psi_g, psi_g).reshape(-1) +  0 * np.outer(psi_e, psi_e).reshape(-1) +  0 * np.outer(psi_e, psi_g).reshape(-1) +  0 * np.outer(psi_g, psi_e).reshape(-1)
-r00_t0 = r_sys
-r11_t0 = r_sys 
-r22_t0 = r_sys 
-r10_t0 = np.zeros(4)
-r01_t0 = np.zeros(4)
-r20_t0 = np.zeros(4)
-r02_t0 = np.zeros(4)
-r21_t0 = np.zeros(4)
-r12_t0 = np.zeros(4)
-initial_fock_dens = np.hstack((r00_t0, r01_t0, r02_t0, r10_t0, r11_t0, r12_t0, r20_t0, r21_t0, r22_t0))
+rho_init = create_system_state(fock_size=fock_size, sys_size=sys_size, r_sys=r_sys)
+
+initial_fock_dens = np.reshape(rho_init, -1)
 
 #Time settings
-tmax = 8
-trange = np.linspace(0, tmax, 100)
+tmin = -2
+tmax = 4
+trange = np.linspace(tmin, tmax, 100)
 
 #Solver
 initial_conditions = np.hstack((initial_fock_dens, initial_flux_expectations))
-sol = sc.integrate.solve_ivp(prop_state_flux, [0,tmax], initial_conditions, t_eval=trange,max_step=0.05)
+sol = sc.integrate.solve_ivp(prop_state_flux, [tmin,tmax], initial_conditions, t_eval=trange,max_step=0.05)
 
 
 
@@ -196,17 +215,24 @@ Lambda_mn_t = np.reshape(Lambda_mn_t, (fock_size, fock_size, np.size(trange)))
 r_total_t_22 = weight(r_field_22, rho_mn_t)
 r_total_t_11 = weight(r_field_11, rho_mn_t)
 r_total_t_super = weight(r_field_super, rho_mn_t)
+r_total_t_coh = weight(r_field_coh, rho_mn_t)
+r_total_t_44 = weight(r_field_44, rho_mn_t)
 
 #Total fluxes
 Lambda_total_t_22 = weight(r_field_22, Lambda_mn_t)
 Lambda_total_t_11 = weight(r_field_11, Lambda_mn_t)
 Lambda_total_t_super = weight(r_field_super, Lambda_mn_t)
+Lambda_total_t_coh = weight(r_field_coh, Lambda_mn_t)
+Lambda_total_t_44 = weight(r_field_44, Lambda_mn_t)
+
 
 
 #flux
 flux_22 = np.diff(Lambda_total_t_22)/np.diff(trange)
 flux_11 = np.diff(Lambda_total_t_11)/np.diff(trange)
 flux_super = np.diff(Lambda_total_t_super)/np.diff(trange)
+flux_coh = np.diff(Lambda_total_t_coh)/np.diff(trange)
+flux_44 = np.diff(Lambda_total_t_44)/np.diff(trange)
 
 
 #Probabilities
@@ -218,6 +244,12 @@ Pgg_11 = r_total_t_11[3]
 
 Pee_super = r_total_t_super[0] 
 Pgg_super = r_total_t_super[3]
+
+Pee_coh = r_total_t_coh[0] 
+Pgg_coh = r_total_t_coh[3]
+
+Pee_44 = r_total_t_44[0] 
+Pgg_44 = r_total_t_44[3]
 
 
 #Plotting
@@ -231,18 +263,29 @@ ax[2].set_xlabel(r'Time ($ t/\Gamma$)')
 two_color='red'
 one_color='blue'
 super_color='purple'
+coh_color='orange'
+four_color='black'
 l_width =1
 ax[0].plot(trange, Pee_22, linewidth=l_width, color=two_color, linestyle="dotted",  label=r'$N=2$')
 ax[0].plot(trange, Pee_11, linewidth=l_width, color= one_color, linestyle="dashed", label=r'$N=1$')
 ax[0].plot(trange, Pee_super, linewidth=l_width, color=super_color, linestyle="dashdot", label=r'Superposition')
+ax[0].plot(trange, Pee_coh, linewidth=l_width, color=coh_color, linestyle="dashdot", label=r'Coherent mu=4')
+ax[0].plot(trange, Pee_44, linewidth=l_width, color=four_color, linestyle="dashdot", label=r'$N=4$')
+
 
 ax[2].plot(trange, Lambda_total_t_22, linewidth=l_width, color=two_color, linestyle="dotted", label=r'N=2 integrated flux')
 ax[2].plot(trange, Lambda_total_t_11, linewidth=l_width, color= one_color,  linestyle="dashed", label=r'N=1 integrated flux')
 ax[2].plot(trange, Lambda_total_t_super, color=super_color, linewidth=l_width,linestyle="dashdot", label=r'Superposition integrated flux')
+ax[2].plot(trange, Lambda_total_t_coh, color=coh_color, linewidth=l_width,linestyle="dashdot", label=r'Coherent integrated flux')
+ax[2].plot(trange, Lambda_total_t_44, color=four_color, linewidth=l_width,linestyle="dashdot", label=r'N=4 integrated flux')
+
 
 ax[1].plot(trange[:-1], flux_22, linewidth=l_width, color=two_color, linestyle="dotted", label=r'N=2 flux')
 ax[1].plot(trange[:-1], flux_11, linewidth=l_width, color= one_color,  linestyle="dashed", label=r'N=1 flux')
 ax[1].plot(trange[:-1], flux_super, color=super_color, linewidth=l_width, linestyle="dashdot", label=r'Superposition flux')
+ax[1].plot(trange[:-1], flux_coh, color=coh_color, linewidth=l_width, linestyle="dashdot", label=r'Coherent flux')
+ax[1].plot(trange[:-1], flux_44, color=four_color, linewidth=l_width, linestyle="dashdot", label=r'N=4 flux')
+
 
 ax[0].plot(trange, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="solid", zorder=0, color="black", label=r'$|\xi(t)|^2$')
 ax[0].fill_between(trange, 0, pulse_func(trange)**2, color="black", alpha=0.1)
@@ -252,10 +295,10 @@ ax[2].plot(trange, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="sol
 ax[2].fill_between(trange, 0, pulse_func(trange)**2, color="black", alpha=0.1)
 
 
-ax[0].set_xlim(left=0, right=tmax)
+ax[0].set_xlim(left=tmin, right=tmax)
 ax[0].set_ylim([0,1])
-ax[1].set_ylim([0,1.1])
-ax[2].set_ylim([0,2])
+ax[1].set_ylim([0,4])
+ax[2].set_ylim([0,4])
 
 from matplotlib.ticker import MaxNLocator
 

@@ -164,7 +164,7 @@ def create_system_state(fock_size, sys_size, r_sys):
 
 
 #Wavepacket
-Omega = 1.46
+Omega = 0.1
 t0 = 0
 pulse_func = lambda x: gaus(x, Omega, t0)
 
@@ -218,8 +218,8 @@ rho_init = create_system_state(fock_size=fock_size, sys_size=sys_size, r_sys=r_s
 initial_fock_dens = np.reshape(rho_init, -1)
 
 #Time settings
-tmin = -2
-tmax = 4
+tmin = -20
+tmax = 40
 trange = np.linspace(tmin, tmax, 100)
 
 '''

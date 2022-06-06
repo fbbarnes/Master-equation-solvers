@@ -11,6 +11,7 @@ from warnings import warn
 from tqdm import tqdm
 import datetime
 import pickle
+from tkinter import filedialog as fd
 
 mpl.rcParams['mathtext.fontset'] = 'cm'
 mpl.rcParams['font.family'] = 'serif'
@@ -163,12 +164,12 @@ def create_system_state(fock_size, sys_size, r_sys):
 
 
 #Wavepacket
-Omega = 1.46
+Omega = 10
 t0 = 0
 pulse_func = lambda x: gaus(x, Omega, t0)
 
 #Field state(s)
-fock_size = 100
+fock_size = 102
 #two photon
 r_field_22 = np.zeros((fock_size, fock_size))
 r_field_22[2][2] = 1
@@ -189,7 +190,7 @@ r_field_20 = np.zeros((fock_size, fock_size))
 r_field_20[20][20] = 1
 #hundred photon
 r_field_100 = np.zeros((fock_size, fock_size))
-r_field_100[50][50] = 1
+r_field_100[100][100] = 1
 
 
 #coherent state
@@ -216,18 +217,15 @@ rho_init = create_system_state(fock_size=fock_size, sys_size=sys_size, r_sys=r_s
 initial_fock_dens = np.reshape(rho_init, -1)
 
 #Time settings
-tmin = -2
-tmax = 4
-trange = np.linspace(tmin, tmax, 100)
+tmin = -20
+tmax = 40
+trange = np.linspace(tmin, tmax, 6000)
+
 
 #Solver
 initial_conditions = np.hstack((initial_fock_dens, initial_flux_expectations))
 with tqdm(total=1000, unit="‰") as pbar:
   sol = sc.integrate.solve_ivp(prop_state_flux, [tmin,tmax], initial_conditions, t_eval=trange,max_step=0.05,args=[pbar, [tmin, (tmax-tmin)/1000]])
-
-
-print(type(sol))
-print(sol)
 
 now = datetime.datetime.now()
 time = now.strftime("%Y-%m-%d--%H-%M-%S")
@@ -237,8 +235,11 @@ print(filepath)
 file = open(filepath, 'wb')
 pickle.dump(sol, file)
 file.close()
+'''
 
-
+openfile = fd.askopenfilename()
+sol = np.load(openfile, allow_pickle=True)
+'''
 #Final states
 rho_mn_t = sol.y[0:(fock_size**2 * sys_size**2)]
 rho_mn_t = np.reshape(rho_mn_t, (fock_size, fock_size, sys_size**2, np.size(trange)))
@@ -326,40 +327,46 @@ ax[2].set_xlabel(r'Time ($ t/\Gamma$)')
 
 two_color='red'
 one_color='blue'
-super_color='purple'
-coh_color='orange'
+ten_color='violet'
+twenty_color='purple'
+hun_color='red'
+coh10_colour='gold'
+coh50_colour='orange'
 four_color='black'
 l_width =1
-ax[0].plot(trange, Pee_22, linewidth=l_width, color=two_color, linestyle="dotted",  label=r'$N=2$')
+#ax[0].plot(trange, Pee_22, linewidth=l_width, color=two_color, linestyle="dotted",  label=r'$N=2$')
 ax[0].plot(trange, Pee_11, linewidth=l_width, color= one_color, linestyle="dashed", label=r'$N=1$')
-ax[0].plot(trange, Pee_super, linewidth=l_width, color=super_color, linestyle="dashdot", label=r'Superposition')
-'''
-ax[0].plot(trange, Pee_44, linewidth=l_width, color=four_color, linestyle="dashdot", label=r'$N=4$')
-'''
+#ax[0].plot(trange, Pee_super, linewidth=l_width, color=super_color, linestyle="dashdot", label=r'Superposition')
 
-ax[2].plot(trange, Lambda_total_t_22, linewidth=l_width, color=two_color, linestyle="dotted", label=r'N=2 integrated flux')
-ax[2].plot(trange, Lambda_total_t_11, linewidth=l_width, color= one_color,  linestyle="dashed", label=r'N=1 integrated flux')
-ax[2].plot(trange, Lambda_total_t_super, color=super_color, linewidth=l_width,linestyle="dashdot", label=r'Superposition integrated flux')
+ax[0].plot(sol.t, Pee_10, linewidth=l_width, color=ten_color, linestyle="dashdot", label=r'$N=10$')
+ax[0].plot(sol.t, Pee_20, linewidth=l_width, color=twenty_color, linestyle="dashdot", label=r'$N=20$')
+ax[0].plot(sol.t, Pee_100, linewidth=l_width, color=hun_color, linestyle="dashdot", label=r'$N=100$')
+ax[0].plot(sol.t, Pee_coh10, linewidth=l_width, color=coh10_colour, linestyle="dashdot", label=r'Coh 10')
+ax[0].plot(sol.t, Pee_coh50, linewidth=l_width, color=coh50_colour, linestyle="dashdot", label=r'$Coh 50')
+
+
+
+ax[2].plot(sol.t, Lambda_total_t_22, linewidth=l_width, color=two_color, linestyle="dotted", label=r'N=2 integrated flux')
+ax[2].plot(sol.t, Lambda_total_t_11, linewidth=l_width, color= one_color,  linestyle="dashed", label=r'N=1 integrated flux')
 '''
 ax[2].plot(trange, Lambda_total_t_44, color=four_color, linewidth=l_width,linestyle="dashdot", label=r'N=4 integrated flux')
 '''
 
-ax[1].plot(trange[:-1], flux_22, linewidth=l_width, color=two_color, linestyle="dotted", label=r'N=2 flux')
-ax[1].plot(trange[:-1], flux_11, linewidth=l_width, color= one_color,  linestyle="dashed", label=r'N=1 flux')
-ax[1].plot(trange[:-1], flux_super, color=super_color, linewidth=l_width, linestyle="dashdot", label=r'Superposition flux')
+ax[1].plot(sol.t[:-1], flux_22, linewidth=l_width, color=two_color, linestyle="dotted", label=r'N=2 flux')
+ax[1].plot(sol.t[:-1], flux_11, linewidth=l_width, color= one_color,  linestyle="dashed", label=r'N=1 flux')
 '''
 ax[1].plot(trange[:-1], flux_44, color=four_color, linewidth=l_width, linestyle="dashdot", label=r'N=4 flux')
 '''
 
-ax[0].plot(trange, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="solid", zorder=0, color="black", label=r'$|\xi(t)|^2$')
-ax[0].fill_between(trange, 0, pulse_func(trange)**2, color="black", alpha=0.1)
-ax[1].plot(trange, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="solid", zorder=0, color="black", label=r'$|\xi(t)|^2$')
-ax[1].fill_between(trange, 0, pulse_func(trange)**2, color="black", alpha=0.1)
-ax[2].plot(trange, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="solid", zorder=0, color="black", label=r'$|\xi(t)|^2$')
-ax[2].fill_between(trange, 0, pulse_func(trange)**2, color="black", alpha=0.1)
+ax[0].plot(sol.t, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="solid", zorder=0, color="black", label=r'$|\xi(t)|^2$')
+ax[0].fill_between(sol.t, 0, pulse_func(trange)**2, color="black", alpha=0.1)
+ax[1].plot(sol.t, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="solid", zorder=0, color="black", label=r'$|\xi(t)|^2$')
+ax[1].fill_between(sol.t, 0, pulse_func(trange)**2, color="black", alpha=0.1)
+ax[2].plot(sol.t, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="solid", zorder=0, color="black", label=r'$|\xi(t)|^2$')
+ax[2].fill_between(sol.t, 0, pulse_func(trange)**2, color="black", alpha=0.1)
 
 
-ax[0].set_xlim(left=tmin, right=tmax)
+ax[0].set_xlim(left=-20, right=40)
 ax[0].set_ylim([0,1])
 ax[1].set_ylim([0,fock_size])
 ax[2].set_ylim([0,fock_size])
@@ -394,4 +401,3 @@ while os.path.exists("plot%s.png" % file_num):
 plt.tight_layout()
 fig.savefig(str("plot"+str(file_num)))
 plt.show()
-

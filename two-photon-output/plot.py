@@ -23,11 +23,6 @@ mpl.rcParams['font.sans-serif'] = ['cmr10']
 mpl.rcParams.update({'font.size': 14})
 
 
-
-
-
-
-
 def spre(op):
     return np.kron(op, np.eye(op.shape[0]))
 
@@ -115,9 +110,6 @@ def prop_state_flux(t, y, pbar, state):
   pbar.update(n)
   state[0] = last_t +dt * n
 
-
-
-
   rho = y[0:(fock_size**2 * sys_size**2)]
   rho = np.reshape(rho, (fock_size, fock_size, sys_size**2))
   
@@ -129,6 +121,7 @@ def prop_state_flux(t, y, pbar, state):
 
   y = np.hstack((rho_prop, flux_prop))
   flag = True
+
   return y
 
 def weight(r_field, r_mn_t):
@@ -138,12 +131,13 @@ def weight(r_field, r_mn_t):
       rho_mn_weighted_t[m][n] = r_field[m][n] * r_mn_t[m][n]
   
   r_total_t = np.sum(rho_mn_weighted_t, axis=(0,1))
+
   return r_total_t 
 
 def create_coh_field(fock_size, mu):
   r_field = np.zeros((fock_size, fock_size))
   for i in range(0, fock_size):
-    #print(poisson.pmf(i, mu))
+    print(poisson.pmf(i, mu))
     r_field[i][i] =  poisson.pmf(i, mu)
 
   return r_field
@@ -163,13 +157,41 @@ def create_system_state(fock_size, sys_size, r_sys):
 
 
 
-#Wavepacket
-Omega = 0.1
-t0 = 0
 pulse_func = lambda x: gaus(x, Omega, t0)
 
-#Field state(s)
-fock_size = 12
+
+filename = fd.askopenfilename()
+file = open(filename, 'rb') 
+object_pi2 = pickle.load(file)
+file.close()
+
+def load_data():
+  filename = fd.askopenfilename()
+  file = open(filename, 'rb') 
+  data = np.load(file, allow_pickle=True)
+  file.close()
+  return data
+
+
+data = load_data()
+sol = data["sol"]
+sys_size = data["sys_size"]
+fock_size = data["fock_size"]
+rho_init = data["rho_init"]
+flux_init = data["flux_init"]
+trange = data["trange"]
+max_step = data["max_step"]
+Gamma =  data["Gamma"]
+Omega =  data["Omega"]
+t0 = data["t0"]
+
+
+
+
+#Wavepacket
+pulse_func = lambda x: gaus(x, Omega, t0)
+
+
 #two photon
 r_field_22 = np.zeros((fock_size, fock_size))
 r_field_22[2][2] = 1
@@ -185,67 +207,17 @@ r_field_44[4][4] = 1
 #ten photon
 r_field_10 = np.zeros((fock_size, fock_size))
 r_field_10[10][10] = 1
-'''
 #twenty photon
 r_field_20 = np.zeros((fock_size, fock_size))
 r_field_20[20][20] = 1
 #hundred photon
 r_field_100 = np.zeros((fock_size, fock_size))
-r_field_100[50][50] = 1
-'''
+r_field_100[100][100] = 1
 
-#coherent state
+#coherent states
 r_field_coh10 = create_coh_field(fock_size=fock_size, mu=10)
 r_field_coh50 = create_coh_field(fock_size=fock_size, mu=50)
-initial_flux_expectations = np.zeros(r_field_11.size)
 
-
-
-
-#State and operator definitions
-psi_e = np.array([1,0])
-psi_g = np.array([0,1])
-sig = np.outer(psi_g, psi_e)
-Gamma = 1
-Lind = 0.5 * Gamma * vec_lind(sig)
-L = np.sqrt(Gamma) * sig
-S = np.eye(2)
-
-#Initial emitter state
-sys_size = 2
-r_sys = 1 * np.outer(psi_g, psi_g).reshape(-1) +  0 * np.outer(psi_e, psi_e).reshape(-1) +  0 * np.outer(psi_e, psi_g).reshape(-1) +  0 * np.outer(psi_g, psi_e).reshape(-1)
-rho_init = create_system_state(fock_size=fock_size, sys_size=sys_size, r_sys=r_sys)
-
-initial_fock_dens = np.reshape(rho_init, -1)
-
-#Time settings
-tmin = -20
-tmax = 40
-trange = np.linspace(tmin, tmax, 6000)
-
-'''
-#Solver
-initial_conditions = np.hstack((initial_fock_dens, initial_flux_expectations))
-with tqdm(total=1000, unit="‰") as pbar:
-  sol = sc.integrate.solve_ivp(prop_state_flux, [tmin,tmax], initial_conditions, t_eval=trange,max_step=0.05,args=[pbar, [tmin, (tmax-tmin)/1000]])
-'''
-
-'''
-now = datetime.datetime.now()
-time = now.strftime("%Y-%m-%d--%H-%M-%S")
-print("Current Time =", time)
-filepath =  str(time) + '--multi-photon-sol' 
-print(filepath)
-np.save(filepath, sol)
-'''
-filename = fd.askopenfilename()
-file = open(filename, 'rb') 
-object_pi2 = pickle.load(file)
-file.close()
-
-
-openfile = fd.askopenfilename()
-sol = np.load(openfile, allow_pickle=True)
 
 #Final states
 rho_mn_t = sol.y[0:(fock_size**2 * sys_size**2)]
@@ -328,7 +300,7 @@ Pgg_coh50 = r_total_t_coh50[3]
 my_dpi = 300
 fig, ax = plt.subplots(nrows=3, ncols=1, sharex='col', figsize=(2000/my_dpi, 1250/my_dpi), dpi=my_dpi)
 #Info
-info_string = f"Gamma={Gamma}, Omega={Omega}, t0={t0}, r_sys={r_sys}, r_field_super={r_field_super} "
+info_string = f"Gamma={Gamma}, Omega={Omega}, t0={t0}, rho_init={rho_init} "
 #Main plot
 ax[2].set_xlabel(r'Time ($ t/\Gamma$)')
 
@@ -353,17 +325,20 @@ ax[0].plot(trange, Pee_coh50, linewidth=l_width, color=coh50_colour, linestyle="
 
 
 
-ax[2].plot(trange, Lambda_total_t_22, linewidth=l_width, color=two_color, linestyle="dotted", label=r'N=2 integrated flux')
 ax[2].plot(trange, Lambda_total_t_11, linewidth=l_width, color= one_color,  linestyle="dashed", label=r'N=1 integrated flux')
-'''
-ax[2].plot(trange, Lambda_total_t_44, color=four_color, linewidth=l_width,linestyle="dashdot", label=r'N=4 integrated flux')
-'''
+ax[2].plot(trange, Lambda_total_t_10, linewidth=l_width, color= ten_color,  linestyle="dashed", label=r'N=10 integrated flux')
+ax[2].plot(trange, Lambda_total_t_20, linewidth=l_width, color= twenty_color,  linestyle="dashed", label=r'N=20 integrated flux')
+ax[2].plot(trange, Lambda_total_t_100, linewidth=l_width, color= hun_color,  linestyle="dashed", label=r'N=100 integrated flux')
+ax[2].plot(trange, Lambda_total_t_coh50, linewidth=l_width, color= coh50_colour,  linestyle="dashed", label=r'Coh50 integrated flux')
 
-ax[1].plot(trange[:-1], flux_22, linewidth=l_width, color=two_color, linestyle="dotted", label=r'N=2 flux')
+
+
 ax[1].plot(trange[:-1], flux_11, linewidth=l_width, color= one_color,  linestyle="dashed", label=r'N=1 flux')
-'''
-ax[1].plot(trange[:-1], flux_44, color=four_color, linewidth=l_width, linestyle="dashdot", label=r'N=4 flux')
-'''
+ax[1].plot(trange[:-1], flux_10, linewidth=l_width, color= two_color,  linestyle="dashed", label=r'N=1 flux')
+ax[1].plot(trange[:-1], flux_20, linewidth=l_width, color= twenty_color,  linestyle="dashed", label=r'N=1 flux')
+ax[1].plot(trange[:-1], flux_100, linewidth=l_width, color= hun_color,  linestyle="dashed", label=r'N=1 flux')
+ax[1].plot(trange[:-1], flux_coh50, linewidth=l_width, color= coh50_colour,  linestyle="dashed", label=r'N=1 flux')
+
 
 ax[0].plot(trange, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="solid", zorder=0, color="black", label=r'$|\xi(t)|^2$')
 ax[0].fill_between(trange, 0, pulse_func(trange)**2, color="black", alpha=0.1)
@@ -373,9 +348,9 @@ ax[2].plot(trange, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="sol
 ax[2].fill_between(trange, 0, pulse_func(trange)**2, color="black", alpha=0.1)
 
 
-ax[0].set_xlim(left=tmin, right=tmax)
+ax[0].set_xlim(left=np.min(trange), right=np.max(trange))
 ax[0].set_ylim([0,1])
-ax[1].set_ylim([0,fock_size])
+ax[1].set_ylim([0,5*fock_size])
 ax[2].set_ylim([0,fock_size])
 
 from matplotlib.ticker import MaxNLocator

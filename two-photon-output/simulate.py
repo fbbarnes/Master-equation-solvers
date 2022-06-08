@@ -115,9 +115,6 @@ def prop_state_flux(t, y, pbar, state):
   pbar.update(n)
   state[0] = last_t +dt * n
 
-
-
-
   rho = y[0:(fock_size**2 * sys_size**2)]
   rho = np.reshape(rho, (fock_size, fock_size, sys_size**2))
   
@@ -127,9 +124,10 @@ def prop_state_flux(t, y, pbar, state):
   rho_prop = np.reshape(rho_prop, -1)
   flux_prop = np.reshape(flux_prop, -1)
 
-  y = np.hstack((rho_prop, flux_prop))
+  y_prop = np.hstack((rho_prop, flux_prop))
   flag = True
-  return y
+
+  return y_prop
 
 def weight(r_field, r_mn_t):
   rho_mn_weighted_t = np.zeros(r_mn_t.shape)
@@ -138,6 +136,7 @@ def weight(r_field, r_mn_t):
       rho_mn_weighted_t[m][n] = r_field[m][n] * r_mn_t[m][n]
   
   r_total_t = np.sum(rho_mn_weighted_t, axis=(0,1))
+
   return r_total_t 
 
 def create_coh_field(fock_size, mu):

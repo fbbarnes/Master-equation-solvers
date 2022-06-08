@@ -10,8 +10,8 @@ import os
 from warnings import warn
 from tqdm import tqdm
 import datetime
-from tkinter import filedialog as fd
 import pickle
+from tkinter import filedialog as fd
 
 mpl.rcParams['mathtext.fontset'] = 'cm'
 mpl.rcParams['font.family'] = 'serif'
@@ -143,7 +143,7 @@ def weight(r_field, r_mn_t):
 def create_coh_field(fock_size, mu):
   r_field = np.zeros((fock_size, fock_size))
   for i in range(0, fock_size):
-    #print(poisson.pmf(i, mu))
+    print(poisson.pmf(i, mu))
     r_field[i][i] =  poisson.pmf(i, mu)
 
   return r_field
@@ -164,12 +164,12 @@ def create_system_state(fock_size, sys_size, r_sys):
 
 
 #Wavepacket
-Omega = 0.1
+Omega = 10
 t0 = 0
 pulse_func = lambda x: gaus(x, Omega, t0)
 
 #Field state(s)
-fock_size = 100
+fock_size = 102
 #two photon
 r_field_22 = np.zeros((fock_size, fock_size))
 r_field_22[2][2] = 1
@@ -186,18 +186,17 @@ r_field_44[4][4] = 1
 r_field_10 = np.zeros((fock_size, fock_size))
 r_field_10[10][10] = 1
 #twenty photon
-r_field_20 = np.zeros((fock_size, fock_size))
-r_field_20[20][20] = 1
+#r_field_20 = np.zeros((fock_size, fock_size))
+#r_field_20[20][20] = 1
 #hundred photon
-r_field_100 = np.zeros((fock_size, fock_size))
-r_field_100[50][50] = 1
+#r_field_100 = np.zeros((fock_size, fock_size))
+#r_field_100[100][100] = 1
 
 
 #coherent state
 r_field_coh10 = create_coh_field(fock_size=fock_size, mu=10)
-r_field_coh50 = create_coh_field(fock_size=fock_size, mu=50)
-initial_flux_expectations = np.zeros(r_field_11.size)
-
+#r_field_coh50 = create_coh_field(fock_size=fock_size, mu=50)
+flux_init = np.zeros(r_field_11.size)
 
 
 
@@ -218,33 +217,55 @@ rho_init = create_system_state(fock_size=fock_size, sys_size=sys_size, r_sys=r_s
 initial_fock_dens = np.reshape(rho_init, -1)
 
 #Time settings
-tmin = -20
-tmax = 40
-trange = np.linspace(tmin, tmax, 100)
+tmin = -2
+tmax = 4
+steps = 600
+trange = np.linspace(tmin, tmax, steps)
+max_step = (np.max(trange)-np.min(trange)) / steps
 
-'''
+
 #Solver
-initial_conditions = np.hstack((initial_fock_dens, initial_flux_expectations))
+initial_conditions = np.hstack((initial_fock_dens, flux_init))
 with tqdm(total=1000, unit="‰") as pbar:
-  sol = sc.integrate.solve_ivp(prop_state_flux, [tmin,tmax], initial_conditions, t_eval=trange,max_step=0.05,args=[pbar, [tmin, (tmax-tmin)/1000]])
-'''
+  sol = sc.integrate.solve_ivp(prop_state_flux, [tmin,tmax], initial_conditions, t_eval=trange,max_step=max_step,args=[pbar, [tmin, (tmax-tmin)/1000]])
 
-'''
+data = {
+  "sol": sol,
+  "sys_size": sys_size,
+  "fock_size": fock_size,
+  "rho_init": rho_init,
+  "flux_init": flux_init,
+  "trange": trange,
+  "max_step": max_step,
+  "Gamma": Gamma,
+  "Omega": Omega,
+  "t0": t0
+}
+
+
 now = datetime.datetime.now()
 time = now.strftime("%Y-%m-%d--%H-%M-%S")
 print("Current Time =", time)
-filepath =  str(time) + '--multi-photon-sol' 
+filepath =  str(time) + '--multi-photon-sol.obj' 
 print(filepath)
-np.save(filepath, sol)
-'''
-filename = fd.askopenfilename()
-file = open(filename, 'rb') 
-object_pi2 = pickle.load(file)
+file = open(filepath, 'wb')
+pickle.dump(data, file)
 file.close()
 
 
 openfile = fd.askopenfilename()
-sol = np.load(openfile, allow_pickle=True)
+data = np.load(openfile, allow_pickle=True)
+sol = data["sol"]
+sys_size = data["sys_size"]
+fock_size = data["fock_size"]
+rho_init = data["rho_init"]
+flux_init = data["flux_init"]
+trange = data["trange"]
+max_step = data["max_step"]
+Gamma =  data["Gamma"]
+Omega =  data["Omega"]
+t0 = data["t0"]
+
 
 #Final states
 rho_mn_t = sol.y[0:(fock_size**2 * sys_size**2)]
@@ -261,10 +282,10 @@ r_total_t_super = weight(r_field_super, rho_mn_t)
 
 r_total_t_44 = weight(r_field_44, rho_mn_t)
 r_total_t_10 = weight(r_field_10, rho_mn_t)
-r_total_t_20 = weight(r_field_20, rho_mn_t)
-r_total_t_100 = weight(r_field_100, rho_mn_t)
-r_total_t_coh10 = weight(r_field_coh10, rho_mn_t)
-r_total_t_coh50 = weight(r_field_coh50, rho_mn_t)
+#r_total_t_20 = weight(r_field_20, rho_mn_t)
+#r_total_t_100 = weight(r_field_100, rho_mn_t)
+#r_total_t_coh10 = weight(r_field_coh10, rho_mn_t)
+#r_total_t_coh50 = weight(r_field_coh50, rho_mn_t)
 
 #Total fluxes
 Lambda_total_t_22 = weight(r_field_22, Lambda_mn_t)
@@ -273,25 +294,25 @@ Lambda_total_t_super = weight(r_field_super, Lambda_mn_t)
 
 Lambda_total_t_44 = weight(r_field_44, Lambda_mn_t)
 Lambda_total_t_10 = weight(r_field_10, Lambda_mn_t)
+'''
 Lambda_total_t_20 = weight(r_field_20, Lambda_mn_t)
 Lambda_total_t_100 = weight(r_field_100, Lambda_mn_t)
 Lambda_total_t_coh10 = weight(r_field_coh10, Lambda_mn_t)
 Lambda_total_t_coh50 = weight(r_field_coh50, Lambda_mn_t)
-
+'''
 
 
 #flux
 flux_22 = np.diff(Lambda_total_t_22)/np.diff(trange)
 flux_11 = np.diff(Lambda_total_t_11)/np.diff(trange)
-flux_super = np.diff(Lambda_total_t_super)/np.diff(trange)
 
-flux_44 = np.diff(Lambda_total_t_44)/np.diff(trange)
 flux_10 = np.diff(Lambda_total_t_10)/np.diff(trange)
+'''
 flux_20 = np.diff(Lambda_total_t_20)/np.diff(trange)
 flux_100 = np.diff(Lambda_total_t_100)/np.diff(trange)
 flux_coh10 = np.diff(Lambda_total_t_coh10)/np.diff(trange)
 flux_coh50 = np.diff(Lambda_total_t_coh50)/np.diff(trange)
-
+'''
 
 #Probabilities
 Pee_22 = r_total_t_22[0] 
@@ -300,16 +321,11 @@ Pgg_22 = r_total_t_22[3]
 Pee_11 = r_total_t_11[0] 
 Pgg_11 = r_total_t_11[3]
 
-Pee_super = r_total_t_super[0] 
-Pgg_super = r_total_t_super[3]
 
-
-Pee_44 = r_total_t_44[0] 
-Pgg_44 = r_total_t_44[3]
 
 Pee_10 = r_total_t_10[0] 
 Pgg_10 = r_total_t_10[3]
-
+'''
 Pee_20 = r_total_t_20[0] 
 Pgg_20 = r_total_t_20[3]
 
@@ -321,7 +337,7 @@ Pgg_coh10 = r_total_t_coh10[3]
 
 Pee_coh50 = r_total_t_coh50[0] 
 Pgg_coh50 = r_total_t_coh50[3]
-
+'''
 
 #Plotting
 my_dpi = 300
@@ -340,36 +356,37 @@ coh10_colour='gold'
 coh50_colour='orange'
 four_color='black'
 l_width =1
-#ax[0].plot(trange, Pee_22, linewidth=l_width, color=two_color, linestyle="dotted",  label=r'$N=2$')
+ax[0].plot(trange, Pee_22, linewidth=l_width, color=two_color, linestyle="dotted",  label=r'$N=2$')
 ax[0].plot(trange, Pee_11, linewidth=l_width, color= one_color, linestyle="dashed", label=r'$N=1$')
 #ax[0].plot(trange, Pee_super, linewidth=l_width, color=super_color, linestyle="dashdot", label=r'Superposition')
 
-ax[0].plot(trange, Pee_10, linewidth=l_width, color=ten_color, linestyle="dashdot", label=r'$N=10$')
-ax[0].plot(trange, Pee_20, linewidth=l_width, color=twenty_color, linestyle="dashdot", label=r'$N=20$')
-ax[0].plot(trange, Pee_100, linewidth=l_width, color=hun_color, linestyle="dashdot", label=r'$N=100$')
-ax[0].plot(trange, Pee_coh10, linewidth=l_width, color=coh10_colour, linestyle="dashdot", label=r'Coh 10')
-ax[0].plot(trange, Pee_coh50, linewidth=l_width, color=coh50_colour, linestyle="dashdot", label=r'$Coh 50')
+ax[0].plot(sol.t, Pee_10, linewidth=l_width, color=ten_color, linestyle="dashdot", label=r'$N=10$')
+'''
+ax[0].plot(sol.t, Pee_20, linewidth=l_width, color=twenty_color, linestyle="dashdot", label=r'$N=20$')
+ax[0].plot(sol.t, Pee_100, linewidth=l_width, color=hun_color, linestyle="dashdot", label=r'$N=100$')
+ax[0].plot(sol.t, Pee_coh10, linewidth=l_width, color=coh10_colour, linestyle="dashdot", label=r'Coh 10')
+ax[0].plot(sol.t, Pee_coh50, linewidth=l_width, color=coh50_colour, linestyle="dashdot", label=r'$Coh 50')
+'''
 
 
-
-ax[2].plot(trange, Lambda_total_t_22, linewidth=l_width, color=two_color, linestyle="dotted", label=r'N=2 integrated flux')
-ax[2].plot(trange, Lambda_total_t_11, linewidth=l_width, color= one_color,  linestyle="dashed", label=r'N=1 integrated flux')
+ax[2].plot(sol.t, Lambda_total_t_22, linewidth=l_width, color=two_color, linestyle="dotted", label=r'N=2 integrated flux')
+ax[2].plot(sol.t, Lambda_total_t_11, linewidth=l_width, color= one_color,  linestyle="dashed", label=r'N=1 integrated flux')
 '''
 ax[2].plot(trange, Lambda_total_t_44, color=four_color, linewidth=l_width,linestyle="dashdot", label=r'N=4 integrated flux')
 '''
 
-ax[1].plot(trange[:-1], flux_22, linewidth=l_width, color=two_color, linestyle="dotted", label=r'N=2 flux')
-ax[1].plot(trange[:-1], flux_11, linewidth=l_width, color= one_color,  linestyle="dashed", label=r'N=1 flux')
+ax[1].plot(sol.t[:-1], flux_22, linewidth=l_width, color=two_color, linestyle="dotted", label=r'N=2 flux')
+ax[1].plot(sol.t[:-1], flux_11, linewidth=l_width, color= one_color,  linestyle="dashed", label=r'N=1 flux')
 '''
 ax[1].plot(trange[:-1], flux_44, color=four_color, linewidth=l_width, linestyle="dashdot", label=r'N=4 flux')
 '''
 
-ax[0].plot(trange, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="solid", zorder=0, color="black", label=r'$|\xi(t)|^2$')
-ax[0].fill_between(trange, 0, pulse_func(trange)**2, color="black", alpha=0.1)
-ax[1].plot(trange, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="solid", zorder=0, color="black", label=r'$|\xi(t)|^2$')
-ax[1].fill_between(trange, 0, pulse_func(trange)**2, color="black", alpha=0.1)
-ax[2].plot(trange, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="solid", zorder=0, color="black", label=r'$|\xi(t)|^2$')
-ax[2].fill_between(trange, 0, pulse_func(trange)**2, color="black", alpha=0.1)
+ax[0].plot(sol.t, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="solid", zorder=0, color="black", label=r'$|\xi(t)|^2$')
+ax[0].fill_between(sol.t, 0, pulse_func(trange)**2, color="black", alpha=0.1)
+ax[1].plot(sol.t, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="solid", zorder=0, color="black", label=r'$|\xi(t)|^2$')
+ax[1].fill_between(sol.t, 0, pulse_func(trange)**2, color="black", alpha=0.1)
+ax[2].plot(sol.t, pulse_func(trange)**2, alpha=1, linewidth=0.5, linestyle="solid", zorder=0, color="black", label=r'$|\xi(t)|^2$')
+ax[2].fill_between(sol.t, 0, pulse_func(trange)**2, color="black", alpha=0.1)
 
 
 ax[0].set_xlim(left=tmin, right=tmax)

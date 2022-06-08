@@ -169,7 +169,7 @@ t0 = 0
 pulse_func = lambda x: gaus(x, Omega, t0)
 
 #Field state(s)
-fock_size = 102
+fock_size = 12
 #two photon
 r_field_22 = np.zeros((fock_size, fock_size))
 r_field_22[2][2] = 1
@@ -186,16 +186,16 @@ r_field_44[4][4] = 1
 r_field_10 = np.zeros((fock_size, fock_size))
 r_field_10[10][10] = 1
 #twenty photon
-r_field_20 = np.zeros((fock_size, fock_size))
-r_field_20[20][20] = 1
+#r_field_20 = np.zeros((fock_size, fock_size))
+#r_field_20[20][20] = 1
 #hundred photon
-r_field_100 = np.zeros((fock_size, fock_size))
-r_field_100[100][100] = 1
+#r_field_100 = np.zeros((fock_size, fock_size))
+#r_field_100[100][100] = 1
 
 
 #coherent state
 r_field_coh10 = create_coh_field(fock_size=fock_size, mu=10)
-r_field_coh50 = create_coh_field(fock_size=fock_size, mu=50)
+#r_field_coh50 = create_coh_field(fock_size=fock_size, mu=50)
 initial_flux_expectations = np.zeros(r_field_11.size)
 
 
@@ -255,10 +255,10 @@ r_total_t_super = weight(r_field_super, rho_mn_t)
 
 r_total_t_44 = weight(r_field_44, rho_mn_t)
 r_total_t_10 = weight(r_field_10, rho_mn_t)
-r_total_t_20 = weight(r_field_20, rho_mn_t)
-r_total_t_100 = weight(r_field_100, rho_mn_t)
-r_total_t_coh10 = weight(r_field_coh10, rho_mn_t)
-r_total_t_coh50 = weight(r_field_coh50, rho_mn_t)
+#r_total_t_20 = weight(r_field_20, rho_mn_t)
+#r_total_t_100 = weight(r_field_100, rho_mn_t)
+#r_total_t_coh10 = weight(r_field_coh10, rho_mn_t)
+#r_total_t_coh50 = weight(r_field_coh50, rho_mn_t)
 
 #Total fluxes
 Lambda_total_t_22 = weight(r_field_22, Lambda_mn_t)
@@ -267,25 +267,25 @@ Lambda_total_t_super = weight(r_field_super, Lambda_mn_t)
 
 Lambda_total_t_44 = weight(r_field_44, Lambda_mn_t)
 Lambda_total_t_10 = weight(r_field_10, Lambda_mn_t)
+'''
 Lambda_total_t_20 = weight(r_field_20, Lambda_mn_t)
 Lambda_total_t_100 = weight(r_field_100, Lambda_mn_t)
 Lambda_total_t_coh10 = weight(r_field_coh10, Lambda_mn_t)
 Lambda_total_t_coh50 = weight(r_field_coh50, Lambda_mn_t)
-
+'''
 
 
 #flux
 flux_22 = np.diff(Lambda_total_t_22)/np.diff(trange)
 flux_11 = np.diff(Lambda_total_t_11)/np.diff(trange)
-flux_super = np.diff(Lambda_total_t_super)/np.diff(trange)
 
-flux_44 = np.diff(Lambda_total_t_44)/np.diff(trange)
 flux_10 = np.diff(Lambda_total_t_10)/np.diff(trange)
+'''
 flux_20 = np.diff(Lambda_total_t_20)/np.diff(trange)
 flux_100 = np.diff(Lambda_total_t_100)/np.diff(trange)
 flux_coh10 = np.diff(Lambda_total_t_coh10)/np.diff(trange)
 flux_coh50 = np.diff(Lambda_total_t_coh50)/np.diff(trange)
-
+'''
 
 #Probabilities
 Pee_22 = r_total_t_22[0] 
@@ -294,16 +294,11 @@ Pgg_22 = r_total_t_22[3]
 Pee_11 = r_total_t_11[0] 
 Pgg_11 = r_total_t_11[3]
 
-Pee_super = r_total_t_super[0] 
-Pgg_super = r_total_t_super[3]
 
-
-Pee_44 = r_total_t_44[0] 
-Pgg_44 = r_total_t_44[3]
 
 Pee_10 = r_total_t_10[0] 
 Pgg_10 = r_total_t_10[3]
-
+'''
 Pee_20 = r_total_t_20[0] 
 Pgg_20 = r_total_t_20[3]
 
@@ -315,7 +310,7 @@ Pgg_coh10 = r_total_t_coh10[3]
 
 Pee_coh50 = r_total_t_coh50[0] 
 Pgg_coh50 = r_total_t_coh50[3]
-
+'''
 
 #Plotting
 my_dpi = 300
@@ -334,16 +329,17 @@ coh10_colour='gold'
 coh50_colour='orange'
 four_color='black'
 l_width =1
-#ax[0].plot(trange, Pee_22, linewidth=l_width, color=two_color, linestyle="dotted",  label=r'$N=2$')
+ax[0].plot(trange, Pee_22, linewidth=l_width, color=two_color, linestyle="dotted",  label=r'$N=2$')
 ax[0].plot(trange, Pee_11, linewidth=l_width, color= one_color, linestyle="dashed", label=r'$N=1$')
 #ax[0].plot(trange, Pee_super, linewidth=l_width, color=super_color, linestyle="dashdot", label=r'Superposition')
 
 ax[0].plot(sol.t, Pee_10, linewidth=l_width, color=ten_color, linestyle="dashdot", label=r'$N=10$')
+'''
 ax[0].plot(sol.t, Pee_20, linewidth=l_width, color=twenty_color, linestyle="dashdot", label=r'$N=20$')
 ax[0].plot(sol.t, Pee_100, linewidth=l_width, color=hun_color, linestyle="dashdot", label=r'$N=100$')
 ax[0].plot(sol.t, Pee_coh10, linewidth=l_width, color=coh10_colour, linestyle="dashdot", label=r'Coh 10')
 ax[0].plot(sol.t, Pee_coh50, linewidth=l_width, color=coh50_colour, linestyle="dashdot", label=r'$Coh 50')
-
+'''
 
 
 ax[2].plot(sol.t, Lambda_total_t_22, linewidth=l_width, color=two_color, linestyle="dotted", label=r'N=2 integrated flux')
